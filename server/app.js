@@ -23,11 +23,30 @@ const app = express();
 // Security headers
 app.use(helmet());
 
-// CORS - only allow the configured client origin
+// Allowed origins list
+const allowedOrigins = [
+  'https://ai-career-tracker-livid.vercel.app',
+  'http://localhost:5173',
+  'http://localhost:3000',
+  process.env.CLIENT_URL
+].filter(Boolean);
+
+// CORS configuration supporting credentials and dynamic origins
 app.use(
   cors({
-    origin: process.env.CLIENT_URL || 'http://localhost:5173',
+    origin: function (origin, callback) {
+      // Allow requests with no origin (e.g. mobile apps, curl, Postman)
+      if (!origin) return callback(null, true);
+
+      if (allowedOrigins.includes(origin)) {
+        return callback(null, true);
+      } else {
+        return callback(new Error('Not allowed by CORS'));
+      }
+    },
     credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization']
   })
 );
 
