@@ -23,22 +23,19 @@ const app = express();
 // Security headers
 app.use(helmet());
 
-// Allowed origins list
-const allowedOrigins = [
-  'https://ai-career-tracker-livid.vercel.app',
-  'http://localhost:5173',
-  'http://localhost:3000',
-  process.env.CLIENT_URL
-].filter(Boolean);
-
-// CORS configuration supporting credentials and dynamic origins
+// CORS configuration supporting dynamic Vercel preview/production URLs & local development
 app.use(
   cors({
     origin: function (origin, callback) {
-      // Allow requests with no origin (e.g. mobile apps, curl, Postman)
+      // Allow requests with no origin (e.g., mobile apps, curl, Postman)
       if (!origin) return callback(null, true);
 
-      if (allowedOrigins.includes(origin)) {
+      // Matches any localhost port or any subdomain ending in .vercel.app
+      const isAllowed =
+        origin.includes('localhost') ||
+        /\.vercel\.app$/.test(new URL(origin).hostname);
+
+      if (isAllowed) {
         return callback(null, true);
       } else {
         return callback(new Error('Not allowed by CORS'));
@@ -50,7 +47,7 @@ app.use(
   })
 );
 
-// Body parsing with sane request size limits
+// Body parsing with request size limits
 app.use(express.json({ limit: '1mb' }));
 app.use(express.urlencoded({ extended: true, limit: '1mb' }));
 
@@ -67,8 +64,9 @@ app.get('/api/health', (req, res) => {
   res.json({ success: true, message: 'API is running' });
 });
 
-// Routes (more mounted here as phases are built)
+// API Routes
 app.use('/api/auth', authRoutes);
+app.use('/auth', authRoutes); // Fallback in case frontend omits /api
 app.use('/api/users', userRoutes);
 app.use('/api/jobs', jobRoutes);
 app.use('/api/applications', applicationRoutes);
